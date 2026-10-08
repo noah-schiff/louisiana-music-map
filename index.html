@@ -269,7 +269,14 @@ dialog#about::backdrop { background: var(--backdrop); }
     return [item.genre_id].concat(item.other_genres || []).every(function (g) { return hiddenSet.has(g); });
   }
 
-  root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
+  // Google's keyless Maps URL for a Street View panorama at a point; '' if the point is not usable.
+  function streetViewUrl(lat, lon) {
+    if (typeof lat !== 'number' || typeof lon !== 'number' || !isFinite(lat) || !isFinite(lon)) return '';
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return '';
+    return 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + encodeURIComponent(lat + ',' + lon);
+  }
+
+  root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, streetViewUrl: streetViewUrl, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
               formatYear: formatYear, nearby: nearby, pointInFeature: pointInFeature, safeUrl: safeUrl};
 })(window);
 </script>
@@ -527,11 +534,16 @@ dialog#about::backdrop { background: var(--backdrop); }
     var seen = {};
     return list.filter(function (s) { var k = s.label + '|' + s.url; return seen[k] ? false : (seen[k] = true); });
   }
+  // What stands at the spot now. Opens Google Street View; coverage is Google's, so rural sites may show none.
+  function streetView(p) {
+    var url = C.streetViewUrl(p.lat, p.lon);
+    return url ? links('See it today', [{label: 'Street View at this spot (Google Maps)', url: url}]) : [];
+  }
   function openPlace(p) {
     var where = [p.town, p.parish ? p.parish + ' Parish' : ''].filter(Boolean).join(', ');
     panel([el('h2', null, p.name), el('div', 'meta', [p.type, where, span(p)].filter(Boolean).join(' · ')),
            chips([p.genre_id].concat(p.other_genres)), el('p', null, p.writeup)]
-          .concat(land([p.nature]), links('Listen', p.listen),
+          .concat(land([p.nature]), links('Listen', p.listen), streetView(p),
                   links('Sources', uniqueSources(p.sources.concat(landSources([p.nature]))))));
   }
   function openRegion(r) {
