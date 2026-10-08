@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>running</title>
+<pre id="out"></pre>
+<script src="core.js"></script>
+<script>
+var pass = 0, fail = 0, out = document.getElementById('out');
+function eq(name, got, want) {
+  var ok = JSON.stringify(got) === JSON.stringify(want);
+  ok ? pass++ : fail++;
+  out.textContent += (ok ? 'ok   ' : 'FAIL ') + name + (ok ? '' : '  got ' + JSON.stringify(got) + ' want ' + JSON.stringify(want)) + '\n';
+}
+try {
+  var E = [{era_id: 'a', year_start: -1700, year_end: 1500}, {era_id: 'b', year_start: 1500, year_end: 1900},
+           {era_id: 'c', year_start: 1900, year_end: 2026}];
+  eq('frac at start', LMM.yearToFrac(-1700, E), 0);
+  eq('frac at end', LMM.yearToFrac(2026, E), 1);
+  eq('frac at era boundary', LMM.yearToFrac(1500, E), 1 / 3);
+  eq('frac mid second era', LMM.yearToFrac(1700, E), 0.5);
+  eq('frac clamps below', LMM.yearToFrac(-9000, E), 0);
+  eq('frac clamps above', LMM.yearToFrac(3000, E), 1);
+  eq('year at 0', LMM.fracToYear(0, E), -1700);
+  eq('year at 1', LMM.fracToYear(1, E), 2026);
+  eq('year at half', LMM.fracToYear(0.5, E), 1700);
+  eq('round trip', [-1700, -500, 1, 1803, 1963, 2026].map(function (y) { return LMM.fracToYear(LMM.yearToFrac(y, E), E); }),
+     [-1700, -500, 1, 1803, 1963, 2026]);
+  var never0 = true;
+  for (var i = 0; i <= 3000; i++) if (LMM.fracToYear(i / 3000, E) === 0) never0 = false;
+  eq('never year 0', never0, true);
+  eq('eraAt boundary belongs to later era', LMM.eraAt(1500, E).era_id, 'b');
+  eq('eraAt final year', LMM.eraAt(2026, E).era_id, 'c');
+  eq('eraAt before start', LMM.eraAt(-5000, E).era_id, 'a');
+  eq('state future', LMM.stateAt({year_start: 1900, year_end: 1950}, 1899), 'future');
+  eq('state active on start', LMM.stateAt({year_start: 1900, year_end: 1950}, 1900), 'active');
+  eq('state active on end', LMM.stateAt({year_start: 1900, year_end: 1950}, 1950), 'active');
+  eq('state historic', LMM.stateAt({year_start: 1900, year_end: 1950}, 1951), 'historic');
+  eq('state ongoing', LMM.stateAt({year_start: 1900, year_end: null}, 2026), 'active');
+  eq('state BCE', LMM.stateAt({year_start: -1700, year_end: -1100}, -1200), 'active');
+  eq('format BCE', LMM.formatYear(-1700), '1700 BCE');
+  eq('format CE', LMM.formatYear(1925), '1925');
+  eq('format early CE', LMM.formatYear(700), '700 CE');
+  var pts = [{id: 'far', x: 100, y: 100}, {id: 'b', x: 13, y: 10}, {id: 'a', x: 10, y: 10}, {id: 'same', x: 10, y: 10}];
+  eq('nearby sorted, stacked both kept', LMM.nearby(pts, 10, 10, 14), ['a', 'same', 'b']);
+  eq('nearby none', LMM.nearby(pts, 500, 500, 14), []);
+  var sq = {type: 'Feature', geometry: {type: 'Polygon', coordinates: [
+    [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]], [[4, 4], [6, 4], [6, 6], [4, 6], [4, 4]]]}};
+  eq('pip inside', LMM.pointInFeature([2, 2], sq), true);
+  eq('pip in hole', LMM.pointInFeature([5, 5], sq), false);
+  eq('pip outside', LMM.pointInFeature([20, 2], sq), false);
+  var multi = {type: 'Feature', geometry: {type: 'MultiPolygon', coordinates: [
+    [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]], [[[5, 5], [6, 5], [6, 6], [5, 6], [5, 5]]]]}};
+  eq('pip multipolygon second part', LMM.pointInFeature([5.5, 5.5], multi), true);
+  eq('safeUrl http', LMM.safeUrl('https://loc.gov/x'), 'https://loc.gov/x');
+  eq('safeUrl rejects script', LMM.safeUrl('javascript:alert(1)'), '');
+  eq('safeUrl rejects empty', LMM.safeUrl(null), '');
+  // Research text must never be parsed as HTML, including in map tooltips.
+  var node = LMM.el(document, 'span', 'k', '<img src=x onerror=1> & "q"');
+  eq('el keeps markup literal', node.textContent, '<img src=x onerror=1> & "q"');
+  eq('el creates no child elements', node.children.length, 0);
+  eq('el sets class', node.className, 'k');
+  // A genre counts as begun once its own start year arrives OR any of its entries is on the map.
+  var jazz = {genre_id: 'jazz', year_start: 1895};
+  var items = [{genre_id: 'jazz', year_start: 1831, year_end: 1928}, {genre_id: 'blues', year_start: 1800, year_end: null}];
+  eq('genre begun by own year', LMM.genreBegun(jazz, [], 1895), true);
+  eq('genre not begun, no entries yet', LMM.genreBegun(jazz, items, 1830), false);
+  eq('genre begun by an earlier entry', LMM.genreBegun(jazz, items, 1850), true);
+  eq('other genres entries do not count', LMM.genreBegun(jazz, [items[1]], 1850), false);
+  // An entry stays visible while any of its genres is switched on.
+  var both = {genre_id: 'jazz', other_genres: ['brass']};
+  eq('hidden when its only genre is off', LMM.isHidden({genre_id: 'jazz'}, new Set(['jazz'])), true);
+  eq('shown through a secondary genre', LMM.isHidden(both, new Set(['jazz'])), false);
+  eq('hidden when all its genres are off', LMM.isHidden(both, new Set(['jazz', 'brass'])), true);
+  eq('shown when nothing is off', LMM.isHidden(both, new Set()), false);
+} catch (e) { fail++; out.textContent += 'ERROR ' + e + '\n'; }
+document.title = (fail ? 'FAIL ' : 'PASS ') + pass + '/' + (pass + fail);
+</script>

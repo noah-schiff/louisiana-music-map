@@ -1,0 +1,22 @@
+# Downloaded base data (Census, Natural Earth, EPA): re-download per the README
+data_raw/
+
+# Built from the research files by scripts/build_gdb.py and scripts/make_aprx.py
+*.gdb/
+*.aprx
+*.atbx
+Index/
+ImportLog/
+.backups/
+
+# Third-party copies kept for reading only
+research/sources/
+
+# Working notes
+docs/
+
+# Python and tooling
+__pycache__/
+*.pyc
+.pytest_cache/
+.claude/

@@ -1,0 +1,48 @@
+<!--S--><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--/S--><title>Louisiana Music Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Zilla+Slab:wght@500;700&display=swap">
+<style>{{LEAFLET_CSS}}</style>
+<style>{{APP_CSS}}</style>
+<!--S--></head>
+<body>
+<!--/S--><div id="app">
+  <header id="top">
+    <h1>Louisiana Music Through Time</h1>
+    <div id="basemaps" role="group" aria-label="Basemap">
+      <button type="button" id="base-designed" data-base="designed" aria-pressed="true">Designed</button>
+      <button type="button" id="base-landscape" data-base="landscape" aria-pressed="false">Landscape</button>
+      <button type="button" id="base-streets" data-base="streets" aria-pressed="false" hidden>Streets</button>
+      <button type="button" id="base-satellite" data-base="satellite" aria-pressed="false" hidden>Satellite</button>
+    </div>
+    <button type="button" id="legend-btn" aria-expanded="false" aria-controls="legend">Genres</button>
+    <button type="button" id="about-btn">About</button>
+  </header>
+  <div id="stage">
+    <div id="map" role="application" aria-label="Map of Louisiana"></div>
+    <aside id="legend" aria-label="Genres"></aside>
+    <section id="era-card" aria-live="polite"></section>
+    <div id="notice" role="status" hidden></div>
+    <aside id="panel" aria-label="Details" hidden></aside>
+  </div>
+  <footer id="timeline">
+    <button type="button" id="play" aria-label="Play timeline">▶</button>
+    <div id="year"></div>
+    <div id="track">
+      <div id="era-ticks"></div>
+      <input id="slider" type="range" min="0" max="2000" step="1" value="0" aria-label="Year">
+    </div>
+  </footer>
+  <dialog id="about"></dialog>
+  <noscript>This map needs JavaScript.</noscript>
+</div>
+<script id="lmm-data" type="application/json">{{DATA}}</script>
+<script>{{LEAFLET_JS}}</script>
+<script>{{CORE_JS}}</script>
+<script>{{APP_JS}}</script>
+<!--S--></body>
+</html>
+<!--/S-->
