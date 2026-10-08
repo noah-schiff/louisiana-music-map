@@ -65,16 +65,17 @@ path.leaflet-interactive:focus { outline: none; }
               border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
 #legend { top: 12px; left: 16px; width: 236px; max-height: calc(100% - 104px); overflow: auto; padding: 8px; }
 #legend .row { display: flex; align-items: center; gap: 8px; padding: 1px 4px; }
-#legend .row.off .swatch { background: transparent !important; }
+#legend .row.off .swatch .glyph path { fill: transparent; }
 #legend .row.off .name { color: var(--muted); text-decoration: line-through; }
 #legend .row.notyet .name { color: var(--muted); font-style: italic; }
-#legend .swatch { width: 12px; height: 12px; border-radius: 50%; flex: none; border: 2px solid var(--swatch); }
+#legend .swatch { width: 16px; height: 16px; flex: none; display: inline-flex; }
+#legend .swatch.block { width: 12px; height: 12px; margin: 2px; border: 1px solid var(--line); }
 #legend .name { flex: 1; min-width: 0; background: none; border: 0; padding: 3px 0; text-align: left; font-size: 14px; }
 #legend .solo { padding: 0 6px; font-size: 12px; color: var(--muted); }
 #legend .all { width: 100%; margin-top: 6px; }
 #eco-key { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
 #eco-key h3 { font: 600 11px/1.3 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 4px 4px; }
-#eco-key .swatch { border-radius: 2px; border-color: var(--line); }
+#eco-key .swatch { border-radius: 2px; }
 #era-card { top: 12px; right: 16px; width: 290px; padding: 10px 12px; border-top: 3px solid var(--accent); }
 #era-card h2 { margin: 0 0 4px; font: 700 16px/1.25 var(--display); }
 #era-card .era-toggle { font: inherit; background: none; border: 0; padding: 0; text-align: left; width: 100%; cursor: default; }
@@ -87,7 +88,11 @@ path.leaflet-interactive:focus { outline: none; }
 #panel .meta { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
 #panel .chips { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; }
 #panel .chip { display: inline-flex; align-items: center; gap: 6px; }
-#panel .chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+#panel .chip .glyph { flex: none; }
+#hover { position: absolute; z-index: 890; left: 50%; bottom: 12px; transform: translateX(-50%); max-width: calc(100% - 32px);
+  display: flex; flex-wrap: wrap; gap: 2px 12px; justify-content: center; padding: 5px 12px; font-size: 13px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); pointer-events: none; }
+#hover .item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 #panel p { margin: 8px 0; max-width: 65ch; }
 #panel h3 { font: 600 11px/1.3 var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 0 4px; }
 #panel ul { margin: 0; padding-left: 18px; }
@@ -126,6 +131,7 @@ dialog#about::backdrop { background: var(--backdrop); }
   #legend { display: none; right: 16px; width: auto; max-height: 60%; z-index: 930; }
   #legend.open { display: block; }
   #era-card { left: 16px; right: 16px; width: auto; padding: 6px 10px; }
+  #hover { display: none !important; }
   #era-card p { display: none; }
   #era-card .era-toggle { cursor: pointer; }
   #era-card:not(.expanded) .era-toggle::after { content: ' \25BE'; color: var(--muted); }

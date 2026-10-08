@@ -76,8 +76,36 @@
     return {id: p.region_id, kind: 'region', item: p, feature: f, state: null,
             layer: L.geoJSON(f, {pane: 'regions', interactive: false})};
   });
+  // Twenty hues cannot all be told apart, so each family of genres also has its own marker shape.
+  var SHAPES = {
+    'circle': ['ancient', 'native', 'colonial', 'congo', 'creole'],
+    'diamond': ['cajun', 'zydeco', 'swamp_pop'],
+    'square': ['jazz', 'brass', 'mardigras_indian', 'marching'],
+    'triangle': ['gospel', 'classical'],
+    'triangle-down': ['blues', 'country'],
+    'hexagon': ['rnb', 'funk', 'bounce', 'hiphop']
+  };
+  var shapeOf = {};
+  Object.keys(SHAPES).forEach(function (s) { SHAPES[s].forEach(function (g) { shapeOf[g] = s; }); });
+  var ShapeMarker = L.CircleMarker.extend({
+    _updatePath: function () {
+      this._renderer._setPath(this, this._empty() ? 'M0 0'
+        : C.shapePath(this.options.shape, this._point.x, this._point.y, this._radius));
+    }
+  });
+  // A small inline drawing of a genre's marker, for the legend and the panels.
+  function glyph(genreId, size) {
+    var NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg'), path = document.createElementNS(NS, 'path');
+    svg.setAttribute('viewBox', '0 0 20 20'); svg.setAttribute('width', size); svg.setAttribute('height', size);
+    svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('class', 'glyph');
+    path.setAttribute('d', C.shapePath(shapeOf[genreId] || 'circle', 10, 10, 6.5));
+    path.setAttribute('fill', genre[genreId].color); path.setAttribute('stroke', genre[genreId].color);
+    path.setAttribute('stroke-width', '2'); path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+    return svg;
+  }
   var places = D.places.map(function (p) {
-    var m = L.circleMarker([p.lat, p.lon], {pane: 'places', bubblingMouseEvents: true});
+    var m = new ShapeMarker([p.lat, p.lon], {pane: 'places', bubblingMouseEvents: true, shape: shapeOf[p.genre_id] || 'circle'});
     m.bindTooltip(el('span', null, p.name), {direction: 'top', offset: [0, -6]});
     return {id: p.place_id, kind: 'place', item: p, state: null, layer: m};
   });
@@ -213,7 +241,7 @@
   // ---- legend -------------------------------------------------------------------------------
   D.genres.slice().sort(function (a, b) { return a.year_start - b.year_start; }).forEach(function (g) {
     var row = el('div', 'row'); row.dataset.genre = g.genre_id;
-    var sw = el('span', 'swatch'); sw.style.setProperty('--swatch', g.color); sw.style.background = g.color;
+    var sw = el('span', 'swatch'); sw.appendChild(glyph(g.genre_id, 16));
     var name = el('button', 'name', g.name); name.type = 'button'; name.title = 'Show or hide ' + g.name;
     name.addEventListener('click', function () {
       hidden.has(g.genre_id) ? hidden.delete(g.genre_id) : hidden.add(g.genre_id); render();
@@ -235,7 +263,7 @@
   ecoKey.appendChild(el('h3', null, 'Natural regions'));
   ecoItems.forEach(function (t) {
     var row = el('div', 'row'), sw = el('span', 'swatch');
-    sw.style.background = ECO_COLORS[t.item.eco_id];
+    sw.className = 'swatch block'; sw.style.background = ECO_COLORS[t.item.eco_id];
     var name = el('button', 'name', t.item.name); name.type = 'button';
     name.addEventListener('click', function () { openEco(t.item); });
     row.append(sw, name); ecoKey.appendChild(row);
@@ -269,8 +297,8 @@
   function chips(ids) {
     var wrap = el('div', 'chips');
     ids.forEach(function (id) {
-      var c = el('span', 'chip'), dot = el('i'); dot.style.background = genre[id].color;
-      c.append(dot, el('span', null, genre[id].name)); wrap.appendChild(c);
+      var c = el('span', 'chip');
+      c.append(glyph(id, 14), el('span', null, genre[id].name)); wrap.appendChild(c);
     });
     return wrap;
   }
@@ -389,6 +417,27 @@
   });
   map.on('dblclick', function () { clearTimeout(clickTimer); });
 
+  var hoverFrame = null;
+  function regionsAt(latlng) {
+    var here = [latlng.lng, latlng.lat];
+    return regions.filter(function (t) { return t.state === 'active' && C.pointInFeature(here, t.feature); });
+  }
+  map.on('mousemove', function (e) {
+    if (hoverFrame) return;
+    hoverFrame = requestAnimationFrame(function () {
+      hoverFrame = null;
+      var found = regionsAt(e.latlng), box = $('hover');
+      if (!found.length) { box.hidden = true; return; }
+      box.replaceChildren.apply(box, found.slice(0, 6).map(function (t) {
+        var item = el('span', 'item');
+        item.append(glyph(t.item.genre_id, 12), el('span', null, genre[t.item.genre_id].name));
+        return item;
+      }).concat(found.length > 6 ? [el('span', 'item', '+' + (found.length - 6) + ' more')] : []));
+      box.hidden = false;
+    });
+  });
+  map.on('mouseout', function () { $('hover').hidden = true; });
+
   // ---- online basemaps with fallback --------------------------------------------------------
   var TILES = {
     streets: function () {
@@ -449,7 +498,7 @@
         ' genres and traditions. Built ' + D.meta.built + '.'),
       el('p', null, 'Heartland regions are approximations drawn from groups of parishes. Music does not stop at a parish line; the shapes show where a tradition was centered, not where it was confined.'),
       el('p', null, 'For the ancient period there are no recordings and little direct evidence of music. Entries there state what archaeology and tribal nations’ own accounts support, and say so where something is inferred.'),
-      el('p', null, 'Colors help tell genres apart, but with this many they cannot do it alone. Hover or tap anything for its name, or use “only” in the genre list to isolate one.'),
+      el('p', null, 'Each family of genres has its own marker shape, and colors are chosen to stay distinct within a shape, including for color-blind viewers. Hover over the map to see which heartlands you are in, or use “only” in the genre list to isolate one.'),
       el('p', null, 'Boundaries: U.S. Census Bureau. Rivers and lakes: Natural Earth. Natural regions: U.S. EPA Level III ecoregions. Online basemaps: OpenStreetMap contributors, CARTO, Esri. Mapping library: Leaflet.'),
       close);
     $('about-btn').addEventListener('click', function () { d.showModal(); });
@@ -458,6 +507,12 @@
   window.LMMApp = {
     setYear: function (y) { stop(); setYear(y); },
     getYear: function () { return year; },
+    regionsAtLatLng: function (lat, lng) { return regionsAt(L.latLng(lat, lng)).map(function (t) { return t.id; }); },
+    shapes: function () {
+      var seen = {};
+      places.forEach(function (t) { seen[t.layer.options.shape] = (seen[t.layer.options.shape] || 0) + 1; });
+      return seen;
+    },
     layout: function () {
       return {zoom: map.getZoom(), clusters: clusterLayer.getLayers().length,
               clustered: places.filter(function (t) { return t.clustered; }).length,

@@ -89,6 +89,20 @@ try {
      LMM.clusterPoints([{id: 'a', x: 5, y: 5}, {id: 'b', x: 5, y: 5}], 0).length, 2);
   var chain = [{id: 'a', x: 0, y: 0}, {id: 'b', x: 15, y: 0}, {id: 'c', x: 30, y: 0}, {id: 'd', x: 45, y: 0}];
   eq('a chain does not swallow far ends', LMM.clusterPoints(chain, 20).length > 1, true);
+  // Marker shapes: a second way, besides color, to tell genre families apart.
+  var count = function (s, ch) { return s.split(ch).length - 1; };
+  var sq = LMM.shapePath('square', 50, 50, 6), tri = LMM.shapePath('triangle', 50, 50, 6);
+  eq('square has four corners', [sq.charAt(0), count(sq, 'L'), sq.slice(-1)], ['M', 3, 'z']);
+  eq('triangle has three corners', count(tri, 'L'), 2);
+  eq('triangle points up', parseFloat(tri.slice(1).split(/[ ,L]/)[1]) < 50, true);
+  eq('triangle-down points down', parseFloat(LMM.shapePath('triangle-down', 50, 50, 6).slice(1).split(/[ ,L]/)[1]) > 50, true);
+  eq('diamond has four corners', count(LMM.shapePath('diamond', 50, 50, 6), 'L'), 3);
+  eq('hexagon has six corners', count(LMM.shapePath('hexagon', 50, 50, 6), 'L'), 5);
+  eq('circle uses arcs', count(LMM.shapePath('circle', 50, 50, 6), 'a') >= 2, true);
+  eq('unknown shape falls back to a circle', LMM.shapePath('blob', 50, 50, 6), LMM.shapePath('circle', 50, 50, 6));
+  eq('six shapes are all different', new Set(['circle', 'square', 'diamond', 'triangle', 'triangle-down', 'hexagon']
+     .map(function (s) { return LMM.shapePath(s, 0, 0, 6); })).size, 6);
+  eq('shape with no size draws nothing', LMM.shapePath('square', 5, 5, 0), 'M0 0');
 } catch (e) { fail++; out.textContent += 'ERROR ' + e + '\n'; }
 document.title = (fail ? 'FAIL ' : 'PASS ') + pass + '/' + (pass + fail);
 </script>

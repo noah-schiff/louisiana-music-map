@@ -121,7 +121,29 @@
     return clusters;
   }
 
+  // SVG path for a marker of the given shape centred on (x, y). `r` is the radius a circle would
+  // have; the other shapes are scaled to look about the same size. Unknown shapes draw a circle.
+  function shapePath(shape, x, y, r) {
+    if (!(r > 0)) return 'M0 0';
+    var n = function (v) { return Math.round(v * 100) / 100; };
+    var poly = function (pts) {
+      return 'M' + pts.map(function (p) { return n(x + p[0]) + ' ' + n(y + p[1]); }).join('L') + 'z';
+    };
+    var s;
+    switch (shape) {
+      case 'square': s = r * 0.9; return poly([[-s, -s], [s, -s], [s, s], [-s, s]]);
+      case 'diamond': s = r * 1.3; return poly([[0, -s], [s, 0], [0, s], [-s, 0]]);
+      case 'triangle': s = r * 1.35; return poly([[0, -s], [s * 0.95, s * 0.72], [-s * 0.95, s * 0.72]]);
+      case 'triangle-down': s = r * 1.35; return poly([[0, s], [-s * 0.95, -s * 0.72], [s * 0.95, -s * 0.72]]);
+      case 'hexagon': s = r * 1.12; return poly([[-s, 0], [-s / 2, -s * 0.87], [s / 2, -s * 0.87], [s, 0], [s / 2, s * 0.87], [-s / 2, s * 0.87]]);
+      default:
+        return 'M' + n(x - r) + ' ' + n(y) + 'a' + n(r) + ' ' + n(r) + ' 0 1 0 ' + n(2 * r) + ' 0a' +
+               n(r) + ' ' + n(r) + ' 0 1 0 ' + n(-2 * r) + ' 0';
+    }
+  }
+
   root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, streetViewUrl: streetViewUrl,
+              shapePath: shapePath,
               clusterPoints: clusterPoints, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
               formatYear: formatYear, nearby: nearby, pointInFeature: pointInFeature, safeUrl: safeUrl};
 })(window);
