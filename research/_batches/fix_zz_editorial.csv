@@ -1,2 +1,6 @@
 "table","row_id","field","new_value","evidence_url","reason"
 "places","mulates_breaux_bridge","year_end","2021","https://973thedawg.com/","Editorial: the row maps the dance hall. The fact-checker confirmed nightly Cajun music continued in the same hall under the Pont Breaux's name until it closed in summer 2021, so the place stays active on the timeline until then; the write-up gives the 2011 renaming."
+"places","dew_drop_inn","genre_id","rnb","https://64parishes.org/entry/dew-drop-inn","Editorial: the point is colored by its primary genre for its whole life, and the Dew Drop Inn is known above all as New Orleans's rhythm and blues room. It keeps that color although its nightclub opened in 1945, two years before the map's start date for the genre; blues is its secondary genre."
+"places","dew_drop_inn","other_genres","blues","https://64parishes.org/entry/dew-drop-inn","Editorial: see genre_id."
+"places","richards_club","genre_id","zydeco","https://www.offbeat.com/","Editorial: Richard's Club is known as a home of zydeco and keeps that color, although it opened in 1947 with blues and R&B bookings, two years before the map's start date for zydeco; those are its secondary genres."
+"places","richards_club","other_genres","rnb;blues","https://www.offbeat.com/","Editorial: see genre_id."
