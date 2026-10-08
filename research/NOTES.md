@@ -207,6 +207,7 @@ what is unknown, and where a date or boundary is a judgment call.
 - `classical` (genres) color: "#8e2641" -> "#7b1e3a". Color specified for the new genre. (https://64parishes.org/entry/opera-and-ballet)
 - `classical` (genres) sources: text revised. Sources for the summary. The 2018 Kimball article is cited through its LSU repository record, the only page for it that would open (the DOI landing page returned 403); its text was not read. (https://64parishes.org/entry/opera-and-ballet)
 - `classical_new_orleans` (regions) note: text revised. States the evidence for limiting the region to Orleans Parish. (https://64parishes.org/entry/opera-and-ballet)
+- `classical_new_orleans` (regions) sources: text revised. Sources opened for the note. (https://64parishes.org/entry/opera-and-ballet)
 - `french_opera_house` (places) genre_id: "colonial" -> "classical". Opened December 1, 1859, fifty-six years after the colonial genre ends; it is an opera house and belongs to the new classical genre. (https://64parishes.org/entry/opera-and-ballet)
 - `theatre_d_orleans` (places) genre_id: "colonial" -> "classical". Opened 1815, after the colonial period ended in 1803; it was the city's French opera house and belongs to the new classical genre. (https://64parishes.org/entry/opera-and-ballet)
 - `theatre_st_pierre` (places) other_genres: "" -> "classical". Opened 1792 under Spanish rule, so colonial stays as the main genre, but its 1796 Sylvain is the starting point of the classical genre and it should appear there too. (https://64parishes.org/entry/opera-and-ballet)

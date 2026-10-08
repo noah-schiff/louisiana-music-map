@@ -14,7 +14,8 @@ from pathlib import Path
 
 here = Path(__file__).resolve().parent
 root = here.parents[1]
-steps = [[here / "merge.py"], [here / "short_names.py"], [here / "apply_fixes.py"], [here / "apply_nature_fixes.py"],
+steps = [[here / "merge.py"], [here / "short_names.py"], [here / "apply_fixes.py"], [here / "apply_kimball_pages.py"],
+         [here / "apply_nature_fixes.py"],
          [here / "palette.py", "apply"], [root / "scripts" / "schema.py", root / "research"]]
 for step in steps:
     r = subprocess.run([sys.executable] + [str(s) for s in step], capture_output=True, text=True, encoding="utf-8")
