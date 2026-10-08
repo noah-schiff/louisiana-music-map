@@ -91,6 +91,13 @@
     return [item.genre_id].concat(item.other_genres || []).every(function (g) { return hiddenSet.has(g); });
   }
 
-  root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
+  // Google's keyless Maps URL for a Street View panorama at a point; '' if the point is not usable.
+  function streetViewUrl(lat, lon) {
+    if (typeof lat !== 'number' || typeof lon !== 'number' || !isFinite(lat) || !isFinite(lon)) return '';
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return '';
+    return 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + encodeURIComponent(lat + ',' + lon);
+  }
+
+  root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, streetViewUrl: streetViewUrl, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
               formatYear: formatYear, nearby: nearby, pointInFeature: pointInFeature, safeUrl: safeUrl};
 })(window);

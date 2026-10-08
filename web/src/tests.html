@@ -71,6 +71,11 @@ try {
   eq('shown through a secondary genre', LMM.isHidden(both, new Set(['jazz'])), false);
   eq('hidden when all its genres are off', LMM.isHidden(both, new Set(['jazz', 'brass'])), true);
   eq('shown when nothing is off', LMM.isHidden(both, new Set()), false);
+  // Street View opens through Google's keyless Maps URL, at the place's own coordinates.
+  eq('street view url', LMM.streetViewUrl(29.9609, -90.0682),
+     'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=29.9609%2C-90.0682');
+  eq('street view url needs numbers', LMM.streetViewUrl('x', null), '');
+  eq('street view url rejects out-of-range', LMM.streetViewUrl(95, -200), '');
 } catch (e) { fail++; out.textContent += 'ERROR ' + e + '\n'; }
 document.title = (fail ? 'FAIL ' : 'PASS ') + pass + '/' + (pass + fail);
 </script>

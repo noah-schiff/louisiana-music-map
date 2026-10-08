@@ -252,11 +252,16 @@
     var seen = {};
     return list.filter(function (s) { var k = s.label + '|' + s.url; return seen[k] ? false : (seen[k] = true); });
   }
+  // What stands at the spot now. Opens Google Street View; coverage is Google's, so rural sites may show none.
+  function streetView(p) {
+    var url = C.streetViewUrl(p.lat, p.lon);
+    return url ? links('See it today', [{label: 'Street View at this spot (Google Maps)', url: url}]) : [];
+  }
   function openPlace(p) {
     var where = [p.town, p.parish ? p.parish + ' Parish' : ''].filter(Boolean).join(', ');
     panel([el('h2', null, p.name), el('div', 'meta', [p.type, where, span(p)].filter(Boolean).join(' · ')),
            chips([p.genre_id].concat(p.other_genres)), el('p', null, p.writeup)]
-          .concat(land([p.nature]), links('Listen', p.listen),
+          .concat(land([p.nature]), links('Listen', p.listen), streetView(p),
                   links('Sources', uniqueSources(p.sources.concat(landSources([p.nature]))))));
   }
   function openRegion(r) {
