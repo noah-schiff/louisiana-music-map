@@ -1,7 +1,8 @@
 # Louisiana Music Through Time
 
 An interactive map of Louisiana's musical history, from about 1700 BCE to today. Drag the
-timeline to watch each tradition's heartland and landmark places appear across the state.
+timeline to watch each tradition's heartland and landmark places appear across the state:
+20 genres, 35 heartland regions and 133 places, each with its sources.
 
 **Live map: https://noah-schiff.github.io/louisiana-music-map/**
 
@@ -47,6 +48,39 @@ Field notes:
   institution, landmark.
 - `sources` looks like `Label <https://url> | Second label <https://url>`.
 - In `regions.csv`, `parishes` is a semicolon-separated list of parish names without "Parish".
+
+## How the research files are assembled
+
+The CSVs in `research\` are themselves built from the raw research and every fact-check
+correction, kept in `research\_batches\`:
+
+- `places_A.csv` … `places_I.csv` are the places as first researched.
+- `fix_*.csv` are corrections from independent fact-checkers, one line per field changed, each
+  with its evidence. `fix_zz_editorial.csv` holds a few deliberate editorial overrides.
+- `palette.json` holds the genre colors.
+
+One command reapplies all of it in the right order and validates the result:
+
+```powershell
+& $PY research\_batches\rebuild_research.py
+```
+
+Editing `research\places.csv` directly works, but that command will overwrite it. To make a
+change that lasts, add a line to a `fix_*.csv` file (or a row to a `places_*.csv` batch) and run
+the command. Every applied correction is logged in `research\NOTES.md`.
+
+Useful checks in the same folder: `verify_new_places.py` (mechanical checks on a new batch),
+`check_new_links.py` (only links added since the last commit), `audit_listen.py` (length, title
+and description of every YouTube link) and `palette.py measure` (how distinguishable the genre
+colors are, including for color-blind viewers).
+
+## Colors and marker shapes
+
+Twenty genres are more than color can separate, so each family of genres also has a marker shape.
+The families are listed twice and must match: `SHAPES` in `web\src\app.js` and `FAMILIES` in
+`research\_batches\palette.py`. When adding a genre, add it to both, then run
+`& $PY research\_batches\palette.py spread 12` to choose colors that stay distinct within each
+shape, and rebuild.
 
 ## Rebuilding
 
