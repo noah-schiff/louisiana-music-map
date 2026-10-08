@@ -1,9 +1,11 @@
 """Checks run after every build. Prints numbers; exits 1 if anything is wrong."""
 import sys
 from pathlib import Path
+from urllib.parse import quote
 import requests
 import schema
 
+OEMBED = "https://www.youtube.com/oembed?format=json&url="
 UA = {"User-Agent": "Mozilla/5.0 (Louisiana Music Map link check)"}
 
 def check_gdb(research_dir, gdb_path) -> list:
@@ -32,11 +34,16 @@ def check_gdb(research_dir, gdb_path) -> list:
 def check_links(urls) -> list:
     bad = []
     for u in urls:
+        # A removed YouTube video still serves a normal watch page; oEmbed says whether it exists.
+        youtube = "youtube.com/watch" in u or "youtu.be/" in u
+        target = OEMBED + quote(u, safe="") if youtube else u
         try:
-            code = requests.get(u, headers=UA, timeout=20, stream=True).status_code
+            code = requests.get(target, headers=UA, timeout=20, stream=True).status_code
         except requests.RequestException as e:
             bad.append((u, f"broken ({type(e).__name__})")); continue
-        if code in (401, 403, 429):
+        if youtube and code in (400, 404):
+            bad.append((u, "broken (video unavailable)"))
+        elif code in (401, 403, 429):
             bad.append((u, f"check by hand ({code})"))
         elif code >= 400:
             bad.append((u, f"broken ({code})"))

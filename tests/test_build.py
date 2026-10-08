@@ -65,3 +65,22 @@ def test_validate_flags_landscape_tables_out_of_step_with_research(tmp_path):
     gdb = tmp_path / "t.gdb"
     build_gdb.build(write_research(tmp_path / "r", nature=nature), RAW, gdb)
     assert validate.check_gdb(write_research(tmp_path / "r2"), gdb) == ["Nature: 1 built but 0 in research"]
+
+def test_check_links_asks_youtube_whether_the_video_exists(monkeypatch):
+    """A removed YouTube video still serves a normal watch page, so the checker must use oEmbed."""
+    import validate
+    class Resp:
+        def __init__(self, code): self.status_code = code
+    asked = []
+    def fake_get(u, **k):
+        asked.append(u)
+        if "oembed" in u:
+            return Resp(404 if "GONE" in u else 401 if "NOEMBED" in u else 200)
+        return Resp(200)                      # every watch page "works"
+    monkeypatch.setattr(validate.requests, "get", fake_get)
+    urls = ["https://www.youtube.com/watch?v=LIVE", "https://www.youtube.com/watch?v=GONE",
+            "https://youtu.be/NOEMBED", "https://example.org/page"]
+    assert validate.check_links(urls) == [
+        ("https://www.youtube.com/watch?v=GONE", "broken (video unavailable)"),
+        ("https://youtu.be/NOEMBED", "check by hand (401)")]
+    assert sum("oembed" in a for a in asked) == 3 and "https://example.org/page" in asked
