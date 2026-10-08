@@ -98,6 +98,30 @@
     return 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + encodeURIComponent(lat + ',' + lon);
   }
 
-  root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, streetViewUrl: streetViewUrl, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
+  // Merge screen points that sit within `radius` pixels of a growing cluster's centre.
+  // Input order does not matter: points are taken left to right, top to bottom, then by id.
+  // Returns [{ids, x, y}] with x, y the mean of the members. radius 0 never merges.
+  function clusterPoints(points, radius) {
+    var sorted = points.slice().sort(function (a, b) {
+      return a.x - b.x || a.y - b.y || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    });
+    var clusters = [];
+    sorted.forEach(function (p) {
+      var home = null;
+      if (radius > 0) {
+        for (var i = 0; i < clusters.length; i++) {
+          if (Math.hypot(clusters[i].x - p.x, clusters[i].y - p.y) <= radius) { home = clusters[i]; break; }
+        }
+      }
+      if (!home) { clusters.push({ids: [p.id], x: p.x, y: p.y}); return; }
+      var n = home.ids.length;
+      home.x = (home.x * n + p.x) / (n + 1); home.y = (home.y * n + p.y) / (n + 1);
+      home.ids.push(p.id);
+    });
+    return clusters;
+  }
+
+  root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, streetViewUrl: streetViewUrl,
+              clusterPoints: clusterPoints, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
               formatYear: formatYear, nearby: nearby, pointInFeature: pointInFeature, safeUrl: safeUrl};
 })(window);

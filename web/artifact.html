@@ -58,6 +58,11 @@ button:hover { border-color: var(--muted); }
               font-weight: 600; padding: 0; text-shadow: 0 0 3px var(--land), 0 0 3px var(--land), 0 0 2px var(--land); }
 .leaflet-tooltip.city-label::before { display: none; }
 path.leaflet-interactive:focus { outline: none; }
+.leaflet-marker-icon.cluster { display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: var(--ink); color: var(--surface); font: 600 13px/1 var(--body); font-variant-numeric: tabular-nums;
+  border: 2px solid var(--surface); box-shadow: var(--shadow); cursor: pointer; }
+.leaflet-marker-icon.cluster.faded { opacity: .55; }
+.leaflet-marker-icon.cluster:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 #legend, #era-card, #panel, #notice { position: absolute; z-index: 900; background: var(--surface);
               border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); }
@@ -269,7 +274,31 @@ dialog#about::backdrop { background: var(--backdrop); }
     return 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=' + encodeURIComponent(lat + ',' + lon);
   }
 
-  root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, streetViewUrl: streetViewUrl, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
+  // Merge screen points that sit within `radius` pixels of a growing cluster's centre.
+  // Input order does not matter: points are taken left to right, top to bottom, then by id.
+  // Returns [{ids, x, y}] with x, y the mean of the members. radius 0 never merges.
+  function clusterPoints(points, radius) {
+    var sorted = points.slice().sort(function (a, b) {
+      return a.x - b.x || a.y - b.y || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    });
+    var clusters = [];
+    sorted.forEach(function (p) {
+      var home = null;
+      if (radius > 0) {
+        for (var i = 0; i < clusters.length; i++) {
+          if (Math.hypot(clusters[i].x - p.x, clusters[i].y - p.y) <= radius) { home = clusters[i]; break; }
+        }
+      }
+      if (!home) { clusters.push({ids: [p.id], x: p.x, y: p.y}); return; }
+      var n = home.ids.length;
+      home.x = (home.x * n + p.x) / (n + 1); home.y = (home.y * n + p.y) / (n + 1);
+      home.ids.push(p.id);
+    });
+    return clusters;
+  }
+
+  root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, streetViewUrl: streetViewUrl,
+              clusterPoints: clusterPoints, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
               formatYear: formatYear, nearby: nearby, pointInFeature: pointInFeature, safeUrl: safeUrl};
 })(window);
 </script>
@@ -294,7 +323,7 @@ dialog#about::backdrop { background: var(--backdrop); }
   }
 
   // ---- map and designed basemap -------------------------------------------------------------
-  var map = L.map('map', {zoomControl: false, minZoom: 6, maxZoom: 11, maxBounds: LA.pad(0.6), zoomSnap: 0.25});
+  var map = L.map('map', {zoomControl: false, minZoom: 6, maxZoom: 16, maxBounds: LA.pad(0.6), zoomSnap: 0.25});
   L.control.zoom({position: 'bottomleft'}).addTo(map);
   map.attributionControl.setPrefix('');
   // Keep the state clear of the floating legend (left) and era card / panel (right) on wide screens.
@@ -358,6 +387,47 @@ dialog#about::backdrop { background: var(--backdrop); }
   });
 
   var allItems = regions.concat(places).map(function (t) { return t.item; });
+
+  // Places that would overlap on screen merge into one numbered marker. Clicking it zooms in until
+  // they separate; at full zoom it lists them instead.
+  var CLUSTER_PX = 18, clusterLayer = L.layerGroup().addTo(map), placeById = {};
+  places.forEach(function (t) { placeById[t.id] = t; });
+  function layoutPlaces() {
+    clusterLayer.clearLayers();
+    var shown = places.filter(function (t) { return t.state === 'active' || t.state === 'historic'; });
+    var pts = shown.map(function (t) {
+      var c = map.latLngToContainerPoint(t.layer.getLatLng()); return {id: t.id, x: c.x, y: c.y};
+    });
+    var inCluster = {};
+    C.clusterPoints(pts, CLUSTER_PX).forEach(function (c) {
+      if (c.ids.length < 2) return;
+      var members = c.ids.map(function (id) { return placeById[id]; });
+      members.forEach(function (m) { inCluster[m.id] = true; });
+      var faded = members.every(function (m) { return m.state === 'historic'; });
+      var icon = L.divIcon({className: 'cluster' + (faded ? ' faded' : ''), html: String(members.length), iconSize: [28, 28]});
+      var mk = L.marker(map.containerPointToLatLng([c.x, c.y]),
+        {icon: icon, pane: 'places', keyboard: true, title: members.length + ' places here. Select to zoom in.',
+         alt: members.length + ' places here'});
+      mk.on('click', function () { openCluster(members); });
+      clusterLayer.addLayer(mk);
+    });
+    places.forEach(function (t) {
+      t.clustered = !!inCluster[t.id];
+      var alone = (t.state === 'active' || t.state === 'historic') && !t.clustered;
+      if (alone && !map.hasLayer(t.layer)) t.layer.addTo(map);
+      if (!alone && map.hasLayer(t.layer)) map.removeLayer(t.layer);
+    });
+  }
+  function openCluster(members) {
+    clearTimeout(clickTimer);
+    if (map.getZoom() < map.getMaxZoom() - 0.01) {
+      var b = L.latLngBounds(members.map(function (m) { return m.layer.getLatLng(); }));
+      map.fitBounds(b.pad(0.6), {maxZoom: map.getMaxZoom()});
+    } else {
+      chooser(members);
+    }
+  }
+  map.on('zoomend', layoutPlaces);
   function shownState(t) {
     var s = C.stateAt(t.item, year);
     return s === 'future' || C.isHidden(t.item, hidden) ? 'off' : s;
@@ -366,19 +436,24 @@ dialog#about::backdrop { background: var(--backdrop); }
     var ring = css('--surface');
     regions.concat(places).forEach(function (t) {
       var s = shownState(t), color = genre[t.item.genre_id].color, active = s === 'active';
-      if (s === 'off') { if (map.hasLayer(t.layer)) map.removeLayer(t.layer); t.state = s; return; }
+      t.state = s;
+      if (t.kind === 'place') {
+        if (s !== 'off') {
+          t.layer.setStyle({radius: active ? 6.5 : 4, color: ring, weight: 2,
+                            opacity: active ? 1 : 0.6, fillColor: color, fillOpacity: active ? 1 : 0.4});
+        }
+        return;
+      }
+      if (s === 'off') { if (map.hasLayer(t.layer)) map.removeLayer(t.layer); return; }
       if (!map.hasLayer(t.layer)) t.layer.addTo(map);
-      if (t.kind === 'region') {
+      {
         var fill = baseName === 'landscape' ? 0.08 : 0.22;
         t.layer.setStyle({color: color, weight: active ? (baseName === 'landscape' ? 2.4 : 1.8) : 1,
                           opacity: active ? 0.95 : 0.4, dashArray: active ? null : '4 4',
                           fillColor: color, fillOpacity: active ? fill : 0.04});
-      } else {
-        t.layer.setStyle({radius: active ? 6.5 : 4, color: ring, weight: 2,
-                          opacity: active ? 1 : 0.6, fillColor: color, fillOpacity: active ? 1 : 0.4});
       }
-      t.state = s;
     });
+    layoutPlaces();
     var era = C.eraAt(year, D.eras);
     $('year').textContent = C.formatYear(year);
     $('slider').setAttribute('aria-valuetext', C.formatYear(year) + ', ' + era.name);
@@ -581,7 +656,10 @@ dialog#about::backdrop { background: var(--backdrop); }
     var rank = function (t) {
       return (t.kind === 'place' ? 0 : t.kind === 'eco' ? 4 : 2) + (t.state === 'active' ? 0 : 1);
     };
+    var heading = {place: 'Places', region: 'Heartland regions', eco: 'Natural region'}, last = null;
+    var mixed = hits.some(function (t) { return t.kind !== hits[0].kind; });
     hits.slice().sort(function (a, b) { return rank(a) - rank(b); }).forEach(function (t) {
+      if (mixed && t.kind !== last) { nodes.push(el('h3', null, heading[t.kind])); last = t.kind; }
       var label = t.kind === 'place' ? t.item.name
         : t.kind === 'eco' ? t.item.name + ' (natural region)'
         : t.item.label + ' (' + genre[t.item.genre_id].name + ' region)';
@@ -595,7 +673,7 @@ dialog#about::backdrop { background: var(--backdrop); }
   }
   function hitsAt(containerPoint, latlng) {
     var vis = function (t) { return t.state === 'active' || t.state === 'historic'; };
-    var pts = places.filter(vis).map(function (t) {
+    var pts = places.filter(function (t) { return vis(t) && !t.clustered; }).map(function (t) {
       var c = map.latLngToContainerPoint(t.layer.getLatLng()); return {id: t.id, x: c.x, y: c.y};
     });
     var ids = C.nearby(pts, containerPoint.x, containerPoint.y, 14);
@@ -639,7 +717,7 @@ dialog#about::backdrop { background: var(--backdrop); }
     if (name === 'landscape') { ecoLayer.addTo(map); } else { map.removeLayer(ecoLayer); }
     $('eco-key').hidden = name !== 'landscape';
     if (builtIn) {
-      designed.addTo(map); map.setMaxZoom(11);
+      designed.addTo(map); map.setMaxZoom(16);
       if (name === 'landscape') { ecoLayer.bringToBack(); baseLayers.state.bringToBack(); }
     } else {
       var loaded = 0, failed = 0;
@@ -684,6 +762,13 @@ dialog#about::backdrop { background: var(--backdrop); }
   window.LMMApp = {
     setYear: function (y) { stop(); setYear(y); },
     getYear: function () { return year; },
+    layout: function () {
+      return {zoom: map.getZoom(), clusters: clusterLayer.getLayers().length,
+              clustered: places.filter(function (t) { return t.clustered; }).length,
+              alone: places.filter(function (t) { return map.hasLayer(t.layer); }).length};
+    },
+    zoomTo: function (lat, lng, z) { map.setView([lat, lng], z, {animate: false}); return map.getZoom(); },
+    openFirstCluster: function () { var l = clusterLayer.getLayers()[0]; if (l) l.fire('click'); return !!l; },
     setBase: function (name) { setBase(name); return baseName; },
     visibleCounts: function () {
       var n = function (list) { return list.filter(function (t) { return t.state !== 'off'; }).length; };

@@ -76,6 +76,19 @@ try {
      'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=29.9609%2C-90.0682');
   eq('street view url needs numbers', LMM.streetViewUrl('x', null), '');
   eq('street view url rejects out-of-range', LMM.streetViewUrl(95, -200), '');
+  // Crowded places merge into clusters at low zoom.
+  var cp = [{id: 'a', x: 100, y: 100}, {id: 'b', x: 108, y: 104}, {id: 'c', x: 400, y: 50}, {id: 'd', x: 96, y: 98}];
+  var cl = LMM.clusterPoints(cp, 20);
+  eq('cluster groups near points', cl.map(function (c) { return c.ids.slice().sort().join(''); }).sort(), ['abd', 'c']);
+  var big = cl.filter(function (c) { return c.ids.length === 3; })[0];
+  eq('cluster center is the mean', [Math.round(big.x), Math.round(big.y)], [101, 101]);
+  eq('cluster of nothing', LMM.clusterPoints([], 20), []);
+  eq('cluster order does not depend on input order',
+     LMM.clusterPoints(cp.slice().reverse(), 20).map(function (c) { return c.ids.slice().sort().join(''); }).sort(), ['abd', 'c']);
+  eq('radius 0 keeps points apart, even stacked ones',
+     LMM.clusterPoints([{id: 'a', x: 5, y: 5}, {id: 'b', x: 5, y: 5}], 0).length, 2);
+  var chain = [{id: 'a', x: 0, y: 0}, {id: 'b', x: 15, y: 0}, {id: 'c', x: 30, y: 0}, {id: 'd', x: 45, y: 0}];
+  eq('a chain does not swallow far ends', LMM.clusterPoints(chain, 20).length > 1, true);
 } catch (e) { fail++; out.textContent += 'ERROR ' + e + '\n'; }
 document.title = (fail ? 'FAIL ' : 'PASS ') + pass + '/' + (pass + fail);
 </script>
