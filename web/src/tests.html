@@ -103,6 +103,24 @@ try {
   eq('six shapes are all different', new Set(['circle', 'square', 'diamond', 'triangle', 'triangle-down', 'hexagon']
      .map(function (s) { return LMM.shapePath(s, 0, 0, 6); })).size, 6);
   eq('shape with no size draws nothing', LMM.shapePath('square', 5, 5, 0), 'M0 0');
+  // The list of all places, grouped by the era each begins in: the map's text alternative.
+  var Eg = [{era_id: 'a', name: 'A', year_start: -1700, year_end: 1500}, {era_id: 'b', name: 'B', year_start: 1500, year_end: 1900},
+            {era_id: 'c', name: 'C', year_start: 1900, year_end: 2026}];
+  var Pg = [{place_id: 'z', name: 'Zed', year_start: 1950}, {place_id: 'y', name: 'Why', year_start: 1500},
+            {place_id: 'x', name: 'Ex', year_start: -1000}, {place_id: 'w', name: 'Alpha', year_start: 1950}];
+  var grouped = LMM.groupByEra(Pg, Eg);
+  eq('groups follow era order', grouped.map(function (g) { return g.era.era_id; }), ['a', 'b', 'c']);
+  eq('boundary year goes to the later era', grouped[1].items.map(function (p) { return p.place_id; }), ['y']);
+  eq('within an era: by year, then name', grouped[2].items.map(function (p) { return p.place_id; }), ['w', 'z']);
+  eq('eras with nothing are left out', LMM.groupByEra([Pg[0]], Eg).map(function (g) { return g.era.era_id; }), ['c']);
+  // What a visitor should know before going. Tourism readers will take every dot as an invitation.
+  eq('ended place', /no longer/i.test(LMM.visitNote({type: 'venue', year_end: 1990}, 'October 2026')), true);
+  eq('active venue names the check date', LMM.visitNote({type: 'venue', year_end: null}, 'October 2026').indexOf('October 2026') >= 0, true);
+  eq('active venue says confirm', /confirm/i.test(LMM.visitNote({type: 'festival', year_end: null}, 'October 2026')), true);
+  eq('birthplace may be private', /private/i.test(LMM.visitNote({type: 'birthplace', year_end: null}, 'October 2026')), true);
+  eq('landmark may be private', /private/i.test(LMM.visitNote({type: 'landmark', year_end: null}, 'October 2026')), true);
+  eq('tribal community is not an attraction', /community/i.test(LMM.visitNote({type: 'tribal community', year_end: null}, 'October 2026')), true);
+  eq('unknown type still gets a note', LMM.visitNote({type: 'mystery', year_end: null}, 'October 2026').length > 20, true);
 } catch (e) { fail++; out.textContent += 'ERROR ' + e + '\n'; }
 document.title = (fail ? 'FAIL ' : 'PASS ') + pass + '/' + (pass + fail);
 </script>

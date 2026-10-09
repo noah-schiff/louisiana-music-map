@@ -10,6 +10,7 @@
 <!--S--></head>
 <body>
 <!--/S--><div id="app">
+  <a id="skip" class="skip" href="#list-btn">Skip the map and list all places</a>
   <header id="top">
     <h1>Louisiana Music Through Time</h1>
     <div id="basemaps" role="group" aria-label="Basemap">
@@ -18,18 +19,19 @@
       <button type="button" id="base-streets" data-base="streets" aria-pressed="false" hidden>Streets</button>
       <button type="button" id="base-satellite" data-base="satellite" aria-pressed="false" hidden>Satellite</button>
     </div>
+    <button type="button" id="list-btn">Places</button>
     <button type="button" id="legend-btn" aria-expanded="false" aria-controls="legend">Genres</button>
     <button type="button" id="about-btn">About</button>
   </header>
-  <div id="stage">
-    <div id="map" role="application" aria-label="Map of Louisiana"></div>
+  <main id="stage">
+    <div id="map" role="region" aria-label="Map of Louisiana. The Places button lists everything on it."></div>
     <aside id="legend" aria-label="Genres"></aside>
-    <section id="era-card" aria-live="polite"></section>
+    <section id="era-card" aria-label="Current era" aria-live="polite"></section>
     <div id="notice" role="status" hidden></div>
     <div id="hover" aria-hidden="true" hidden></div>
     <aside id="panel" aria-label="Details" hidden></aside>
-  </div>
-  <footer id="timeline">
+  </main>
+  <footer id="timeline" aria-label="Timeline">
     <button type="button" id="play" aria-label="Play timeline">▶</button>
     <div id="year"></div>
     <div id="track">

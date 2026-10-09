@@ -142,7 +142,41 @@
     }
   }
 
+  // Every place grouped by the era it begins in, each group in year then name order. Empty eras are
+  // dropped. This list is the map's text alternative.
+  function groupByEra(places, eras) {
+    var groups = eras.map(function (e) { return {era: e, items: []}; });
+    places.forEach(function (p) {
+      var e = eraAt(p.year_start, eras);
+      groups[eras.indexOf(e)].items.push(p);
+    });
+    groups.forEach(function (g) {
+      g.items.sort(function (a, b) { return a.year_start - b.year_start || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0); });
+    });
+    return groups.filter(function (g) { return g.items.length; });
+  }
+
+  // One sentence on what a visitor should expect. Readers take a dot on a map as an invitation, so
+  // every place says whether it is somewhere to go, and `checked` says when that was last confirmed.
+  function visitNote(place, checked) {
+    if (place.year_end != null) {
+      return 'No longer operating here. What remains may be private property, a different business or an empty site.';
+    }
+    switch (place.type) {
+      case 'birthplace':
+      case 'landmark':
+        return 'A historic site or marker, not an attraction with opening hours. It may be private property; please view it from the public way.';
+      case 'tribal community':
+        return 'A living community, not an attraction. Visit only the events and places the nation itself opens to the public.';
+      case 'archaeological site':
+        return 'A protected site. Check opening days and hours before visiting.';
+      default:
+        return 'Active as far as public sources showed in ' + checked + '. Confirm dates, hours and access before you go.';
+    }
+  }
+
   root.LMM = {el: el, genreBegun: genreBegun, isHidden: isHidden, streetViewUrl: streetViewUrl,
+              groupByEra: groupByEra, visitNote: visitNote,
               shapePath: shapePath,
               clusterPoints: clusterPoints, yearToFrac: yearToFrac, fracToYear: fracToYear, eraAt: eraAt, stateAt: stateAt,
               formatYear: formatYear, nearby: nearby, pointInFeature: pointInFeature, safeUrl: safeUrl};

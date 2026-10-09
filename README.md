@@ -121,6 +121,35 @@ script to one of yours.
 - For the ancient period there is little direct evidence of music. Those entries state what
   archaeology and the tribal nations' own accounts support, and mark inference as inference.
 - Every entry cites its sources, shown in the map's detail panel.
+- Recordings with explicit lyrics say so in their link label
+  (`research/_batches/mark_explicit.py`).
+
+## If an organization wants to use this
+
+This is a personal project by a student. It is not an official guide, and nobody listed on it has
+endorsed it. Someone weighing it for public or promotional use should know:
+
+- **How the research was done.** The entries were gathered with an AI research assistant (Claude)
+  working from a written brief (`research/RESEARCH_BRIEF.md`), then checked by a separate
+  fact-checking pass against each cited source (`research/FACTCHECK_BRIEF.md`). Every correction
+  is a line in a `research/_batches/fix_*.csv` file giving the old claim, the new value, the
+  evidence and the reason. No subject expert has reviewed the whole map.
+- **Status of venues.** Each place shown as active was checked for whether it still operates
+  (`research/STATUS_BRIEF.md`; the record is `research/_batches/fix_status_*.txt`). That check has
+  a date, shown in the About panel, and goes stale. The map tells visitors to confirm before going.
+- **Private and vanished places.** Birthplaces, markers and former venues are often private
+  property or empty lots. Each place's panel says what a visitor should expect.
+- **Tribal nations.** Entries on Native nations are written from the nations' own published
+  accounts. No nation has reviewed them. An organization publishing this should ask them first.
+- **Basemaps.** The Streets and Satellite views use free OpenStreetMap, CARTO and Esri services,
+  which suits a personal project. An organization should supply its own licensed basemap; the
+  Designed and Landscape views are drawn from public-domain data and need none.
+- **Listen links** go to YouTube and other outside sites. They are checked when the map is built
+  (`scripts/validate.py`), and they can disappear.
+- **Accessibility.** Audited against WCAG 2.1 AA with scripted checks: text and marker contrast in
+  both themes, keyboard operation, target sizes, landmarks, and a Places list that gives everything
+  on the map as text. It has not been tested with users of assistive technology.
+- **Coverage is uneven.** About 135 places cannot represent the state; many parishes have none.
 
 ## Credits
 

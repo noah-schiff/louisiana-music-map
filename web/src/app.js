@@ -163,7 +163,7 @@
       t.state = s;
       if (t.kind === 'place') {
         if (s !== 'off') {
-          t.layer.setStyle({radius: active ? 6.5 : 4, color: ring, weight: 2,
+          t.layer.setStyle({radius: active ? 6.5 : 4, color: css('--ink'), weight: 1.25,
                             opacity: active ? 1 : 0.6, fillColor: color, fillOpacity: active ? 1 : 0.4});
         }
         return;
@@ -307,7 +307,10 @@
     var ul = el('ul');
     list.forEach(function (s) {
       var li = el('li'), url = C.safeUrl(s.url);
-      if (url) { var a = el('a', null, s.label); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; li.appendChild(a); }
+      if (url) {
+        var a = el('a', null, s.label); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        a.setAttribute('aria-label', s.label + ' (opens in a new tab)'); li.appendChild(a);
+      }
       else li.textContent = s.label;
       ul.appendChild(li);
     });
@@ -327,9 +330,13 @@
     return list.filter(function (s) { var k = s.label + '|' + s.url; return seen[k] ? false : (seen[k] = true); });
   }
   // What stands at the spot now. Opens Google Street View; coverage is Google's, so rural sites may show none.
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
+                'November', 'December'];
+  var built = D.meta.built.split('-'), CHECKED = MONTHS[+built[1] - 1] + ' ' + built[0];
   function streetView(p) {
+    var nodes = [el('h3', null, 'The spot today'), el('p', 'visit', C.visitNote(p, CHECKED))];
     var url = C.streetViewUrl(p.lat, p.lon);
-    return url ? links('See it today', [{label: 'Street View at this spot (Google Maps)', url: url}]) : [];
+    return url ? nodes.concat(links('', [{label: 'Street View at this spot (Google Maps)', url: url}]).slice(1)) : nodes;
   }
   function openPlace(p) {
     var where = [p.town, p.parish ? p.parish + ' Parish' : ''].filter(Boolean).join(', ');
@@ -373,6 +380,28 @@
     if (e.description) nodes.push(el('p', null, e.description));
     panel(nodes.concat(links('Sources', e.sources)));
   }
+  function goTo(t) {
+    if (year < t.item.year_start) setYear(t.item.year_start);
+    if (t.kind === 'place') map.setView(t.layer.getLatLng(), Math.max(map.getZoom(), 12), {animate: false});
+    open(t);
+  }
+  function openList() {
+    var nodes = [el('h2', null, 'All places'),
+                 el('div', 'meta', D.places.length + ' places, grouped by the era in which each begins')];
+    C.groupByEra(D.places, D.eras).forEach(function (g) {
+      nodes.push(el('h3', null, g.era.name));
+      g.items.forEach(function (p) {
+        var t = placeById[p.place_id];
+        var b = el('button', 'choice', p.name + ', ' + [p.town, span(p)].filter(Boolean).join(' · ')); b.type = 'button';
+        b.style.borderLeftColor = genre[p.genre_id].color;
+        b.addEventListener('click', function () { goTo(t); });
+        nodes.push(b);
+      });
+    });
+    panel(nodes);
+  }
+  $('list-btn').addEventListener('click', openList);
+  $('skip').addEventListener('click', function (e) { e.preventDefault(); $('list-btn').focus(); openList(); });
   function open(t) { t.kind === 'place' ? openPlace(t.item) : t.kind === 'eco' ? openEco(t.item) : openRegion(t.item); }
   function chooser(hits) {
     var nodes = [el('h2', null, 'Here in ' + C.formatYear(year)), el('div', 'meta', hits.length + ' entries at this spot')];
@@ -492,14 +521,30 @@
   (function () {
     var d = $('about'), c = D.meta.counts, close = el('button', null, 'Close'); close.type = 'button';
     close.addEventListener('click', function () { d.close(); });
+    function withLinks(parts) {
+      var p = el('p');
+      parts.forEach(function (x) {
+        if (typeof x === 'string') { p.appendChild(document.createTextNode(x)); return; }
+        var a = el('a', null, x[0]); a.href = x[1]; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        a.setAttribute('aria-label', x[0] + ' (opens in a new tab)'); p.appendChild(a);
+      });
+      return p;
+    }
     d.append(
       el('h2', null, 'About this map'),
       el('p', null, c.places + ' places and ' + c.regions + ' heartland regions across ' + c.genres +
-        ' genres and traditions. Built ' + D.meta.built + '.'),
+        ' genres and traditions. Last built and checked ' + CHECKED + '.'),
+      el('p', null, 'Made by Noah Schiff, a geography student at Louisiana State University, as a personal project. It is not an official guide and is not affiliated with any agency, venue or tribal nation.'),
+      el('p', null, 'How it was made: the research was gathered with an AI research assistant (Claude), and every entry was then checked by a separate fact-checker against its sources. Each entry lists those sources, and every correction is logged with the project. The map is not exhaustive; some traditions and many parishes are thinly covered.'),
+      el('p', null, 'Before you visit: many places here are private homes, historical markers or sites where nothing remains, and venues open, close and move. Each entry says what it is. Confirm dates, hours and access before you go, and respect private property.'),
+      el('p', null, 'Entries on Native nations draw on the nations’ own published accounts. Any nation’s correction to its entry is welcome and will be made.'),
+      el('p', null, 'Some linked recordings contain explicit lyrics; those are marked.'),
       el('p', null, 'Heartland regions are approximations drawn from groups of parishes. Music does not stop at a parish line; the shapes show where a tradition was centered, not where it was confined.'),
       el('p', null, 'For the ancient period there are no recordings and little direct evidence of music. Entries there state what archaeology and tribal nations’ own accounts support, and say so where something is inferred.'),
       el('p', null, 'Each family of genres has its own marker shape, and colors are chosen to stay distinct within a shape, including for color-blind viewers. Hover over the map to see which heartlands you are in, or use “only” in the genre list to isolate one.'),
-      el('p', null, 'Boundaries: U.S. Census Bureau. Rivers and lakes: Natural Earth. Natural regions: U.S. EPA Level III ecoregions. Online basemaps: OpenStreetMap contributors, CARTO, Esri. Mapping library: Leaflet.'),
+      el('p', null, 'Boundaries: U.S. Census Bureau. Rivers and lakes: Natural Earth. Natural regions: U.S. EPA Level III ecoregions. Online basemaps: OpenStreetMap contributors, CARTO, Esri (free services suited to a personal project; an organization reusing this map should supply its own licensed basemap). Mapping library: Leaflet.'),
+      withLinks(['Found a mistake? ', ['Report a correction', 'https://github.com/noah-schiff/louisiana-music-map/issues'],
+                 ', or reach the author through ', ['noahmschiff.com', 'https://noahmschiff.com/#contact'], '.']),
       close);
     $('about-btn').addEventListener('click', function () { d.showModal(); });
   })();
@@ -507,6 +552,7 @@
   window.LMMApp = {
     setYear: function (y) { stop(); setYear(y); },
     getYear: function () { return year; },
+    openList: openList,
     regionsAtLatLng: function (lat, lng) { return regionsAt(L.latLng(lat, lng)).map(function (t) { return t.id; }); },
     shapes: function () {
       var seen = {};
